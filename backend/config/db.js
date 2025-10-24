@@ -6,17 +6,49 @@ const {
   DB_HOST = 'localhost',
   DB_USER = 'root',
   DB_PASSWORD = 'asd123',
-  DB_NAME = 'trading_journal'
+  DB_NAME = 'trading_journal',
+  DB_PORT,
+  DB_SOCKET_PATH
 } = process.env;
 
 let connection;
 
-async function ensureDatabaseExists() {
-  const connection = await mysql.createConnection({
-    host: DB_HOST,
+function buildConnectionConfig({ includeDatabase } = { includeDatabase: true }) {
+  const config = {
     user: DB_USER,
     password: DB_PASSWORD
-  });
+  };
+
+  if (DB_SOCKET_PATH) {
+    config.socketPath = DB_SOCKET_PATH;
+  } else {
+    config.host = DB_HOST;
+    config.port = DB_PORT ? Number(DB_PORT) : 3306;
+  }
+
+  if (includeDatabase) {
+    config.database = DB_NAME;
+  }
+
+  return config;
+}
+
+async function ensureDatabaseExists() {
+  const connection = await mysql.createConnection(buildConnectionConfig({ includeDatabase: false }));
+
+  try {
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
+  } finally {
+    await connection.end();
+  }
+}
+
+async function initializeDatabase() {
+  await ensureDatabaseExists();
+
+  if (!connection) {
+    connection = await mysql.createConnection(buildConnectionConfig({ includeDatabase: true }));
+  }
 
   try {
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
