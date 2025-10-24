@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
 
 const { JWT_SECRET = 'supersecret' } = process.env;
 
@@ -17,7 +17,7 @@ export const register = async (req, res) => {
       return res.status(409).json({ message: 'Username already exists.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
     const newUser = await User.create({ username, email, password: hashedPassword });
 
     res.status(201).json({ message: 'User registered successfully.', user: newUser });
@@ -39,7 +39,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await verifyPassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }

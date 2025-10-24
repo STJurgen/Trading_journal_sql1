@@ -1,12 +1,13 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { hashPassword } from '../utils/password.js';
 
 dotenv.config();
 
 const {
   DB_HOST = 'localhost',
   DB_USER = 'root',
-  DB_PASSWORD = '123456',
+  DB_PASSWORD = 'asd123',
   DB_NAME = 'trading_journal'
 } = process.env;
 
@@ -70,8 +71,7 @@ async function createTables() {
 async function seedData() {
   const [users] = await pool.query('SELECT COUNT(*) as count FROM users');
   if (users[0].count === 0) {
-    const bcrypt = await import('bcrypt');
-    const passwordHash = await bcrypt.default.hash('password123', 10);
+    const passwordHash = await hashPassword('password123');
     const [userResult] = await pool.query(
       'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
       ['demo_trader', 'demo@tradeify.com', passwordHash]
