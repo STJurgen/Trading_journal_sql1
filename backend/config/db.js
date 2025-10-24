@@ -50,6 +50,25 @@ async function initializeDatabase() {
     connection = await mysql.createConnection(buildConnectionConfig({ includeDatabase: true }));
   }
 
+  try {
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
+  } finally {
+    await connection.end();
+  }
+}
+
+async function initializeDatabase() {
+  await ensureDatabaseExists();
+
+  if (!connection) {
+    connection = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: DB_NAME
+    });
+  }
+
   // Simple connectivity check so startup fails fast if credentials are wrong.
   await connection.query('SELECT 1');
 
