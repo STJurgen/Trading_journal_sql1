@@ -9,7 +9,7 @@ A full-stack trading journal inspired by Tradeify. The application includes a No
 - Trade journal for adding and deleting trades
 - CSV import workflow for bulk uploads
 - Reports page with additional visualizations
-- Automatic database schema creation with demo data on first run
+- MySQL-backed persistence for trades and user accounts
 
 ## Quick Start
 
@@ -33,18 +33,11 @@ A full-stack trading journal inspired by Tradeify. The application includes a No
    npm start
    ```
 
-   The API will create the database and seed demo data automatically on first launch.
+   Ensure the `trading_journal` database (or whichever name you configure) already exists with the required tables before starting the server.
 
 3. **Open the frontend**
 
    Use your browser to open `frontend/index.html` to login or register. After authenticating, navigate to `dashboard.html` for the analytics view.
-
-4. **Demo credentials**
-
-   After the first run, the following credentials are available:
-
-   - Username: `demo_trader`
-   - Password: `password123`
 
 ## CSV Format
 
