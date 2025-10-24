@@ -1,15 +1,15 @@
-import { getPool } from '../config/db.js';
+import { getConnection } from '../config/db.js';
 
 export const Trade = {
   async findAllByUser(userId) {
-    const pool = getPool();
-    const [rows] = await pool.query('SELECT * FROM trades WHERE user_id = ? ORDER BY close_date DESC', [userId]);
+    const db = getConnection();
+    const [rows] = await db.query('SELECT * FROM trades WHERE user_id = ? ORDER BY close_date DESC', [userId]);
     return rows;
   },
 
   async create(trade) {
-    const pool = getPool();
-    const [result] = await pool.query(
+    const db = getConnection();
+    const [result] = await db.query(
       `INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, strategy, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
@@ -28,8 +28,8 @@ export const Trade = {
   },
 
   async update(id, userId, trade) {
-    const pool = getPool();
-    await pool.query(
+    const db = getConnection();
+    await db.query(
       `UPDATE trades SET symbol = ?, trade_type = ?, entry = ?, exit = ?, result = ?, close_date = ?, strategy = ?, notes = ?
        WHERE id = ? AND user_id = ?`,
       [
@@ -49,7 +49,7 @@ export const Trade = {
   },
 
   async remove(id, userId) {
-    const pool = getPool();
-    await pool.query('DELETE FROM trades WHERE id = ? AND user_id = ?', [id, userId]);
+    const db = getConnection();
+    await db.query('DELETE FROM trades WHERE id = ? AND user_id = ?', [id, userId]);
   }
 };
