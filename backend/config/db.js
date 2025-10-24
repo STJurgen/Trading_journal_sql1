@@ -6,7 +6,7 @@ dotenv.config();
 const {
   DB_HOST = 'localhost',
   DB_USER = 'root',
-  DB_PASSWORD = 'asd123',
+  DB_PASSWORD = '123456',
   DB_NAME = 'trading_journal'
 } = process.env;
 
