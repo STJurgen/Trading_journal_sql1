@@ -1,0 +1,104 @@
+body {
+  background-color: #0e1b25;
+  color: #f8f9fa;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+a {
+  color: #4dabf7;
+}
+
+a:hover {
+  color: #74c0fc;
+}
+
+.navbar {
+  background-color: #09131a;
+}
+
+.card {
+  background-color: #152635;
+  border: none;
+  color: #f8f9fa;
+  border-radius: 16px;
+}
+
+.card-title {
+  font-weight: 600;
+}
+
+.table-dark {
+  --bs-table-bg: #13202b;
+  --bs-table-striped-bg: #152635;
+  --bs-table-hover-bg: #1b3142;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00b4d8, #0077b6);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0096c7, #005f99);
+}
+
+.btn-outline-light {
+  border-radius: 30px;
+}
+
+.logo {
+  height: 32px;
+}
+
+.auth-body {
+  background: radial-gradient(circle at top, rgba(0, 180, 216, 0.2), transparent), #0e1b25;
+}
+
+.auth-card {
+  max-width: 420px;
+  background-color: rgba(21, 38, 53, 0.95);
+  border-radius: 24px;
+  border: 1px solid rgba(77, 171, 247, 0.1);
+}
+
+.auth-logo {
+  height: 48px;
+}
+
+.progress {
+  background-color: rgba(248, 249, 250, 0.1);
+  border-radius: 999px;
+}
+
+.badge {
+  font-size: 0.9rem;
+  border-radius: 999px;
+}
+
+.alert {
+  border-radius: 16px;
+}
+
+.fc-theme-standard .fc-scrollgrid {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.2rem;
+}
+
+.fc .fc-daygrid-day-number {
+  color: #f8f9fa;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background: rgba(0, 180, 216, 0.2);
+}
+
+@media (max-width: 992px) {
+  .navbar .btn {
+    margin-top: 1rem;
+  }
+}
