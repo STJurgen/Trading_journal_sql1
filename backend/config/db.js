@@ -9,7 +9,7 @@ const {
   DB_NAME = 'trading_journal'
 } = process.env;
 
-let pool;
+let connection;
 
 async function ensureDatabaseExists() {
   const connection = await mysql.createConnection({
@@ -28,20 +28,19 @@ async function ensureDatabaseExists() {
 async function initializeDatabase() {
   await ensureDatabaseExists();
 
-  pool = mysql.createPool({
-    host: DB_HOST,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-  });
+  if (!connection) {
+    connection = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: DB_NAME
+    });
+  }
 
   // Simple connectivity check so startup fails fast if credentials are wrong.
-  await pool.query('SELECT 1');
+  await connection.query('SELECT 1');
 
-  await pool.query(`
+  await connection.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       username VARCHAR(255) NOT NULL UNIQUE,
@@ -51,7 +50,7 @@ async function initializeDatabase() {
     )
   `);
 
-  await pool.query(`
+  await connection.query(`
     CREATE TABLE IF NOT EXISTS trades (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
@@ -68,14 +67,14 @@ async function initializeDatabase() {
     )
   `);
 
-  return pool;
+  return connection;
 }
 
-function getPool() {
-  if (!pool) {
+function getConnection() {
+  if (!connection) {
     throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
-  return pool;
+  return connection;
 }
 
-export { initializeDatabase, getPool };
+export { initializeDatabase, getConnection };
