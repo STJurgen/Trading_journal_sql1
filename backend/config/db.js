@@ -11,7 +11,23 @@ const {
 
 let pool;
 
+async function ensureDatabaseExists() {
+  const connection = await mysql.createConnection({
+    host: DB_HOST,
+    user: DB_USER,
+    password: DB_PASSWORD
+  });
+
+  try {
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
+  } finally {
+    await connection.end();
+  }
+}
+
 async function initializeDatabase() {
+  await ensureDatabaseExists();
+
   pool = mysql.createPool({
     host: DB_HOST,
     user: DB_USER,
