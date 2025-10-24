@@ -9,30 +9,72 @@ const {
   DB_NAME = 'trading_journal'
 } = process.env;
 
-let pool;
+let connection;
 
-async function initializeDatabase() {
-  pool = mysql.createPool({
+async function ensureDatabaseExists() {
+  const connection = await mysql.createConnection({
     host: DB_HOST,
     user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    password: DB_PASSWORD
   });
 
-  // Simple connectivity check so startup fails fast if credentials are wrong.
-  await pool.query('SELECT 1');
-
-  return pool;
+  try {
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
+  } finally {
+    await connection.end();
+  }
 }
 
-function getPool() {
-  if (!pool) {
+async function initializeDatabase() {
+  await ensureDatabaseExists();
+
+  if (!connection) {
+    connection = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: DB_NAME
+    });
+  }
+
+  // Simple connectivity check so startup fails fast if credentials are wrong.
+  await connection.query('SELECT 1');
+
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(255) NOT NULL UNIQUE,
+      email VARCHAR(255),
+      password VARCHAR(255) NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS trades (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      symbol VARCHAR(50) NOT NULL,
+      trade_type VARCHAR(20) NOT NULL,
+      entry DECIMAL(15, 4) NOT NULL,
+      exit DECIMAL(15, 4) NOT NULL,
+      result DECIMAL(15, 2) NOT NULL,
+      close_date DATE,
+      strategy VARCHAR(255),
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_trades_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  return connection;
+}
+
+function getConnection() {
+  if (!connection) {
     throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
-  return pool;
+  return connection;
 }
 
-export { initializeDatabase, getPool };
+export { initializeDatabase, getConnection };

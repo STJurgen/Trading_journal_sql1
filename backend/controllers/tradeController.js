@@ -1,6 +1,6 @@
 import { parse } from 'csv-parse/sync';
 import { Trade } from '../models/Trade.js';
-import { getPool } from '../config/db.js';
+import { getConnection } from '../config/db.js';
 
 export const getTrades = async (req, res) => {
   try {
@@ -79,7 +79,7 @@ export const importTrades = async (req, res) => {
       return res.status(400).json({ message: 'CSV file is empty.' });
     }
 
-    const pool = getPool();
+    const db = getConnection();
     const insertQuery = `
       INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, strategy, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -88,7 +88,7 @@ export const importTrades = async (req, res) => {
     let imported = 0;
 
     for (const record of records) {
-      await pool.query(insertQuery, [
+      await db.query(insertQuery, [
         req.user.id,
         record.symbol || record.Symbol,
         (record.trade_type || record.Type || '').toLowerCase() === 'sell' ? 'sell' : 'buy',
