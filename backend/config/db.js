@@ -11,7 +11,6 @@ const {
   DB_SOCKET_PATH,
   DB_INIT_RETRIES,
   DB_INIT_RETRY_DELAY_MS
-  DB_SOCKET_PATH
 } = process.env;
 
 let connection;
