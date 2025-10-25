@@ -87,6 +87,53 @@ async function sleep(delay) {
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
+async function attemptInitialization() {
+  await ensureDatabaseExists();
+
+  const dbConnection = await mysql.createConnection(buildConnectionConfig({ includeDatabase: true }));
+
+  try {
+    // Simple connectivity check so startup fails fast if credentials are wrong.
+    await dbConnection.query('SELECT 1');
+
+    await dbConnection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        email VARCHAR(255),
+        password VARCHAR(255) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await dbConnection.query(`
+      CREATE TABLE IF NOT EXISTS trades (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        symbol VARCHAR(50) NOT NULL,
+        trade_type VARCHAR(20) NOT NULL,
+        \`entry\` DECIMAL(15, 4) NOT NULL,
+        \`exit\` DECIMAL(15, 4) NOT NULL,
+        \`result\` DECIMAL(15, 2) NOT NULL,
+        close_date DATE,
+        strategy VARCHAR(255),
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_trades_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    return dbConnection;
+  } catch (error) {
+    await dbConnection.end().catch(() => {});
+    throw error;
+  }
+}
+
+async function initializeDatabase() {
+  if (connection) {
+    return connection;
+  }
 
   const { retries, retryDelayMs } = getRetryConfig();
   const maxAttempts = retries + 1;
@@ -94,8 +141,7 @@ async function sleep(delay) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      const dbConnection = await attemptInitialization();
-      connection = dbConnection;
+      connection = await attemptInitialization();
       return connection;
     } catch (error) {
       lastError = error;
@@ -115,73 +161,11 @@ async function sleep(delay) {
     }
   }
 
-  throw lastError;
-  const connection = await mysql.createConnection(buildConnectionConfig({ includeDatabase: false }));
-
-  try {
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
-  } finally {
-    await connection.end();
-  }
-}
-
-async function initializeDatabase() {
-  await ensureDatabaseExists();
-
-  if (!connection) {
-    connection = await mysql.createConnection(buildConnectionConfig({ includeDatabase: true }));
+  if (lastError) {
+    throw lastError;
   }
 
-  try {
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
-  } finally {
-    await connection.end();
-  }
-}
-
-async function initializeDatabase() {
-  await ensureDatabaseExists();
-
-  if (!connection) {
-    connection = await mysql.createConnection({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME
-    });
-  }
-
-  // Simple connectivity check so startup fails fast if credentials are wrong.
-  await connection.query('SELECT 1');
-
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(255) NOT NULL UNIQUE,
-      email VARCHAR(255),
-      password VARCHAR(255) NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS trades (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      symbol VARCHAR(50) NOT NULL,
-      trade_type VARCHAR(20) NOT NULL,
-      entry DECIMAL(15, 4) NOT NULL,
-      exit DECIMAL(15, 4) NOT NULL,
-      result DECIMAL(15, 2) NOT NULL,
-      close_date DATE,
-      strategy VARCHAR(255),
-      notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_trades_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-
-  return connection;
+  throw new Error('Failed to initialize database for an unknown reason.');
 }
 
 function getConnection() {

@@ -1,5 +1,32 @@
 import { fetchTrades, createTrade, deleteTrade, importCsv, requireAuth } from './tradeService.js';
 
+let fullCalendarLoaderPromise;
+
+function loadFullCalendar() {
+  if (window.FullCalendar) {
+    return Promise.resolve(window.FullCalendar);
+  }
+
+  if (!fullCalendarLoaderPromise) {
+    fullCalendarLoaderPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js';
+      script.async = true;
+      script.onload = () => {
+        if (window.FullCalendar) {
+          resolve(window.FullCalendar);
+        } else {
+          reject(new Error('FullCalendar failed to load.'));
+        }
+      };
+      script.onerror = () => reject(new Error('Unable to load FullCalendar script.'));
+      document.head.appendChild(script);
+    });
+  }
+
+  return fullCalendarLoaderPromise;
+}
+
 requireAuth();
 
 function formatCurrency(value) {
@@ -19,7 +46,7 @@ async function loadDashboard() {
     const trades = await fetchTrades();
     populateTradesTable(trades);
     renderCharts(trades);
-    renderCalendar(trades);
+    await renderCalendar(trades);
     updateStats(trades);
   } catch (error) {
     console.error(error);
@@ -131,9 +158,17 @@ function renderCharts(trades) {
   if (winRateText) winRateText.textContent = `${winRate}% Win Rate`;
 }
 
-function renderCalendar(trades) {
+async function renderCalendar(trades) {
   const calendarEl = document.getElementById('calendar');
   if (!calendarEl) return;
+
+  let FullCalendar;
+  try {
+    FullCalendar = await loadFullCalendar();
+  } catch (error) {
+    console.error('Failed to initialise calendar:', error);
+    return;
+  }
 
   const events = trades.map((trade) => ({
     title: `${trade.symbol} ${trade.trade_type === 'buy' ? 'Buy' : 'Sell'} ${formatCurrency(trade.result)}`,

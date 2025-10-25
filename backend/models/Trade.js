@@ -10,7 +10,7 @@ export const Trade = {
   async create(trade) {
     const db = getConnection();
     const [result] = await db.query(
-      `INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, strategy, notes)
+      `INSERT INTO trades (user_id, symbol, trade_type, \`entry\`, \`exit\`, \`result\`, close_date, strategy, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         trade.user_id,
@@ -30,7 +30,8 @@ export const Trade = {
   async update(id, userId, trade) {
     const db = getConnection();
     await db.query(
-      `UPDATE trades SET symbol = ?, trade_type = ?, entry = ?, exit = ?, result = ?, close_date = ?, strategy = ?, notes = ?
+      `UPDATE trades
+       SET symbol = ?, trade_type = ?, \`entry\` = ?, \`exit\` = ?, \`result\` = ?, close_date = ?, strategy = ?, notes = ?
        WHERE id = ? AND user_id = ?`,
       [
         trade.symbol,
