@@ -32,6 +32,16 @@ export async function createTrade(trade) {
   return response.json();
 }
 
+export async function updateTrade(id, trade) {
+  const response = await fetch(`${API_URL}/trades/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(trade)
+  });
+  if (!response.ok) throw new Error('Failed to update trade');
+  return response.json();
+}
+
 export async function deleteTrade(id) {
   const response = await fetch(`${API_URL}/trades/${id}`, {
     method: 'DELETE',

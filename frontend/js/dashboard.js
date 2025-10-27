@@ -1,7 +1,8 @@
-import { fetchTrades, createTrade, deleteTrade, importCsv, requireAuth } from './tradeService.js';
+import { fetchTrades, createTrade, deleteTrade, importCsv, requireAuth, updateTrade } from './tradeService.js';
 
 let fullCalendarLoaderPromise;
 let allTrades = [];
+let editingTradeId = null;
 
 function loadFullCalendar() {
   if (window.FullCalendar) {
@@ -137,6 +138,83 @@ function toMysqlDateTime(value) {
     }
   }
   return value;
+}
+
+function formatDateTimeForInputValue(value) {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2})(?::(\d{2}))?)?/);
+    if (match) {
+      const [, datePart, hours = '00', minutes = '00'] = match;
+      return `${datePart}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+  }
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  return '';
+}
+
+function getTradeFormElements() {
+  return {
+    form: document.getElementById('tradeForm'),
+    symbol: document.getElementById('tradeSymbol'),
+    type: document.getElementById('tradeType'),
+    entry: document.getElementById('tradeEntry'),
+    exit: document.getElementById('tradeExit'),
+    result: document.getElementById('tradeResult'),
+    openDate: document.getElementById('tradeOpenDate'),
+    closeDate: document.getElementById('tradeCloseDate'),
+    strategy: document.getElementById('tradeStrategy'),
+    notes: document.getElementById('tradeNotes'),
+    submitBtn: document.getElementById('submitTradeBtn'),
+    cancelBtn: document.getElementById('cancelEditTradeBtn')
+  };
+}
+
+function clearTradeForm() {
+  const elements = getTradeFormElements();
+  if (!elements.form) return;
+  elements.form.reset();
+  if (elements.openDate) elements.openDate.value = '';
+  if (elements.closeDate) elements.closeDate.value = '';
+}
+
+function exitEditMode() {
+  const elements = getTradeFormElements();
+  if (!elements.form) return;
+  editingTradeId = null;
+  delete elements.form.dataset.editing;
+  clearTradeForm();
+  if (elements.submitBtn) elements.submitBtn.textContent = 'Add Trade';
+  if (elements.cancelBtn) elements.cancelBtn.classList.add('d-none');
+}
+
+function enterEditMode(trade) {
+  const elements = getTradeFormElements();
+  if (!elements.form) return;
+  editingTradeId = trade.id;
+  elements.form.dataset.editing = 'true';
+  if (elements.symbol) elements.symbol.value = trade.symbol ?? '';
+  if (elements.type) elements.type.value = trade.trade_type ?? 'buy';
+  if (elements.entry) elements.entry.value = trade.entry ?? '';
+  if (elements.exit) elements.exit.value = trade.exit ?? '';
+  if (elements.result) elements.result.value = trade.result ?? '';
+  if (elements.openDate) elements.openDate.value = formatDateTimeForInputValue(trade.open_date || trade.close_date);
+  if (elements.closeDate) elements.closeDate.value = formatDateTimeForInputValue(trade.close_date || trade.open_date);
+  if (elements.strategy) elements.strategy.value = trade.strategy ?? '';
+  if (elements.notes) elements.notes.value = trade.notes ?? '';
+  if (elements.submitBtn) elements.submitBtn.textContent = 'Update Trade';
+  if (elements.cancelBtn) elements.cancelBtn.classList.remove('d-none');
+  elements.symbol?.focus();
 }
 
 function filterTradesByDate(trades) {
@@ -470,6 +548,7 @@ async function setupTradeJournal() {
 
   try {
     const trades = await fetchTrades();
+    allTrades = trades;
     renderJournalTable(trades);
   } catch (error) {
     console.error(error);
@@ -479,27 +558,41 @@ async function setupTradeJournal() {
   if (tradeForm) {
     tradeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const elements = getTradeFormElements();
       const trade = {
-        symbol: document.getElementById('tradeSymbol').value,
-        trade_type: document.getElementById('tradeType').value,
-        entry: document.getElementById('tradeEntry').value,
-        exit: document.getElementById('tradeExit').value,
-        result: document.getElementById('tradeResult').value,
-        open_date: toMysqlDateTime(document.getElementById('tradeOpenDate').value),
-        close_date: toMysqlDateTime(document.getElementById('tradeCloseDate').value),
-        strategy: document.getElementById('tradeStrategy').value,
-        notes: document.getElementById('tradeNotes').value
+        symbol: elements.symbol?.value ?? '',
+        trade_type: elements.type?.value ?? 'buy',
+        entry: elements.entry?.value ?? '',
+        exit: elements.exit?.value ?? '',
+        result: elements.result?.value ?? '',
+        open_date: toMysqlDateTime(elements.openDate?.value),
+        close_date: toMysqlDateTime(elements.closeDate?.value),
+        strategy: elements.strategy?.value ?? '',
+        notes: elements.notes?.value ?? ''
       };
 
       try {
-        await createTrade(trade);
-        tradeForm.reset();
+        if (editingTradeId) {
+          await updateTrade(editingTradeId, trade);
+          exitEditMode();
+        } else {
+          await createTrade(trade);
+          clearTradeForm();
+        }
         const trades = await fetchTrades();
+        allTrades = trades;
         renderJournalTable(trades);
       } catch (error) {
         console.error(error);
       }
     });
+
+    const cancelBtn = document.getElementById('cancelEditTradeBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        exitEditMode();
+      });
+    }
   }
 }
 
@@ -520,17 +613,35 @@ function renderJournalTable(trades) {
         <td>${formatDateTime(trade.close_date)}</td>
         <td>${trade.strategy || ''}</td>
         <td>${trade.notes || ''}</td>
-        <td><button class="btn btn-sm btn-outline-light" data-delete-id="${trade.id}">Delete</button></td>
+        <td class="text-nowrap">
+          <button class="btn btn-sm btn-outline-light me-2" data-edit-id="${trade.id}">Edit</button>
+          <button class="btn btn-sm btn-outline-light" data-delete-id="${trade.id}">Delete</button>
+        </td>
       </tr>
     `
     )
     .join('');
 
-  document.querySelectorAll('[data-delete-id]').forEach((button) => {
+  journalTableBody.querySelectorAll('[data-edit-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const tradeId = Number(button.dataset.editId);
+      const tradeToEdit = trades.find((t) => t.id === tradeId);
+      if (tradeToEdit) {
+        enterEditMode(tradeToEdit);
+      }
+    });
+  });
+
+  journalTableBody.querySelectorAll('[data-delete-id]').forEach((button) => {
     button.addEventListener('click', async () => {
       try {
-        await deleteTrade(button.dataset.deleteId);
+        const tradeId = Number(button.dataset.deleteId);
+        await deleteTrade(tradeId);
         const trades = await fetchTrades();
+        allTrades = trades;
+        if (editingTradeId === tradeId) {
+          exitEditMode();
+        }
         renderJournalTable(trades);
       } catch (error) {
         console.error(error);

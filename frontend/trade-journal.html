@@ -72,8 +72,9 @@
             <label class="form-label">Notes</label>
             <textarea class="form-control" id="tradeNotes" rows="2" placeholder="Reasons for the trade..."></textarea>
           </div>
-          <div class="col-12 text-end">
-            <button type="submit" class="btn btn-primary">Add Trade</button>
+          <div class="col-12 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-light d-none" id="cancelEditTradeBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submitTradeBtn">Add Trade</button>
           </div>
         </form>
       </div>
@@ -97,7 +98,7 @@
                 <th>Close Date</th>
                 <th>Strategy</th>
                 <th>Notes</th>
-                <th></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="journalTableBody"></tbody>
