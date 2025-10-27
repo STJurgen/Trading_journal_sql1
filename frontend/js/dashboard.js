@@ -38,6 +38,26 @@ function formatCurrency(value) {
   }).format(Number(value || 0));
 }
 
+function formatDateTime(value) {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (match) return `${match[1]} ${match[2]}`;
+  }
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  return value;
+}
+
 async function loadDashboard() {
   if (!document.getElementById('pnlChart')) return;
 
@@ -215,7 +235,7 @@ function populateTradesTable(trades) {
         <td>${formatCurrency(trade.entry)}</td>
         <td>${formatCurrency(trade.exit)}</td>
         <td class="${trade.result >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(trade.result)}</td>
-        <td>${trade.close_date}</td>
+        <td>${formatDateTime(trade.close_date)}</td>
       </tr>
     `)
     .join('');
@@ -233,7 +253,7 @@ function renderCharts(trades) {
     .reverse()
     .forEach((trade) => {
       runningTotal += Number(trade.result || 0);
-      cumulativePnL.push({ date: trade.close_date, total: runningTotal });
+      cumulativePnL.push({ date: formatDateTime(trade.close_date), total: runningTotal });
     });
 
   new Chart(pnlCtx, {
@@ -455,7 +475,7 @@ function renderJournalTable(trades) {
         <td>${formatCurrency(trade.entry)}</td>
         <td>${formatCurrency(trade.exit)}</td>
         <td class="${trade.result >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(trade.result)}</td>
-        <td>${trade.close_date}</td>
+        <td>${formatDateTime(trade.close_date)}</td>
         <td>${trade.strategy || ''}</td>
         <td>${trade.notes || ''}</td>
         <td><button class="btn btn-sm btn-outline-light" data-delete-id="${trade.id}">Delete</button></td>
