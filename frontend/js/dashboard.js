@@ -232,8 +232,8 @@ function populateTradesTable(trades) {
       <tr>
         <td>${trade.symbol}</td>
         <td class="text-capitalize">${trade.trade_type}</td>
-        <td>${formatCurrency(trade.entry)}</td>
-        <td>${formatCurrency(trade.exit)}</td>
+        <td>${trade.entry}</td>
+        <td>${trade.exit}</td>
         <td class="${trade.result >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(trade.result)}</td>
         <td>${formatDateTime(trade.close_date)}</td>
       </tr>
@@ -472,8 +472,8 @@ function renderJournalTable(trades) {
       <tr>
         <td>${trade.symbol}</td>
         <td class="text-capitalize">${trade.trade_type}</td>
-        <td>${formatCurrency(trade.entry)}</td>
-        <td>${formatCurrency(trade.exit)}</td>
+        <td>${trade.entry}</td>
+        <td>${trade.exit}</td>
         <td class="${trade.result >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(trade.result)}</td>
         <td>${formatDateTime(trade.close_date)}</td>
         <td>${trade.strategy || ''}</td>
