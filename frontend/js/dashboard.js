@@ -112,7 +112,7 @@ function renderCharts(trades) {
 
   const wins = trades.filter((t) => Number(t.result) > 0).length;
   const losses = trades.filter((t) => Number(t.result) <= 0).length;
-  const winRate = trades.length ? Math.round((wins / trades.length) * 100) : 0;
+  const winRate = trades.length ? Math.round((wins / trades.length) * 100) : 0; // Percentage of wins and losses
 
   new Chart(winRateCtx, {
     type: 'doughnut',
@@ -154,6 +154,8 @@ function renderCharts(trades) {
 
   const profitFactorText = document.getElementById('profitFactorText');
   if (profitFactorText) profitFactorText.textContent = `PF: ${profitFactor}`;
+  const winRateTextCh = document.getElementById('winRateTextCh');
+  if (winRateTextCh) winRateTextCh.textContent = `+${winRate}% Win Rate`;
   const winRateText = document.getElementById('winRateText');
   if (winRateText) winRateText.textContent = `${winRate}% Win Rate`;
 }
