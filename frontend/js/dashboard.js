@@ -343,7 +343,7 @@ async function renderCalendar(trades) {
   }
 
   const events = trades.map((trade) => ({
-    title: `${Number(trade.result)}`,
+    title: Number(trade.result) >= 0 ? `${Number(trade.result)}$` : `(${Math.abs(Number(trade.result))}$)`,
     start: trade.close_date,
     color: Number(trade.result) >= 0 ? '#38d9a9' : '#ff6b6b'
   }));
