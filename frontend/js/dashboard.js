@@ -449,18 +449,6 @@ function renderCharts(trades) {
 
   const profitFactorText = document.getElementById('profitFactorText');
   if (profitFactorText) profitFactorText.textContent = `PF: ${profitFactor}`;
-  const winRateTextCh = document.getElementById('winRateTextCh');
-  if (winRateTextCh) {
-    const { account_balance: accountBalance = 0 } = getStoredUser();
-    if (accountBalance > 0) {
-      const gainPercent = (totalPnL / accountBalance) * 100;
-      winRateTextCh.textContent = `${gainPercent >= 0 ? '+' : ''}${gainPercent.toFixed(2)}% Gain`;
-      winRateTextCh.classList.toggle('bg-success', gainPercent >= 0);
-      winRateTextCh.classList.toggle('bg-danger', gainPercent < 0);
-    } else {
-      winRateTextCh.textContent = 'N/A';
-    }
-  }
   const winRateText = document.getElementById('winRateText');
   if (winRateText) winRateText.textContent = `${winRate}% Win Rate`;
 }
@@ -523,10 +511,27 @@ function updateStats(trades) {
   if (avgWinBar) avgWinBar.style.width = `${Math.min((avgWin / (avgWin + avgLoss || 1)) * 100, 100)}%`;
   if (avgLossBar) avgLossBar.style.width = `${Math.min((avgLoss / (avgWin + avgLoss || 1)) * 100, 100)}%`;
 
+  const { account_balance: storedBalance = 0 } = getStoredUser();
+  const startingBalance = Number(storedBalance) || 0;
+  const currentBalance = startingBalance + totalPnL;
+
   const accountBalanceEl = document.getElementById('accountBalance');
   if (accountBalanceEl) {
-    const { account_balance: accountBalance = 0 } = getStoredUser();
-    accountBalanceEl.textContent = formatCurrency(accountBalance);
+    accountBalanceEl.textContent = formatCurrency(currentBalance);
+  }
+
+  const winRateTextCh = document.getElementById('winRateTextCh');
+  if (winRateTextCh) {
+    if (startingBalance > 0) {
+      const gainPercent = ((currentBalance - startingBalance) / startingBalance) * 100;
+      const formattedGain = `${gainPercent >= 0 ? '+' : ''}${gainPercent.toFixed(2)}% Gain`;
+      winRateTextCh.textContent = formattedGain;
+      winRateTextCh.classList.toggle('bg-success', gainPercent >= 0);
+      winRateTextCh.classList.toggle('bg-danger', gainPercent < 0);
+    } else {
+      winRateTextCh.textContent = 'Set starting balance';
+      winRateTextCh.classList.remove('bg-success', 'bg-danger');
+    }
   }
 
   const tradeStreak = document.getElementById('tradeStreak');
