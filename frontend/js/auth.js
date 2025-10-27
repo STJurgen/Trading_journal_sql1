@@ -20,14 +20,15 @@ if (document.getElementById('loginForm')) {
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     hideAlert('loginError');
-    const username = document.getElementById('loginUsername').value.trim();
+    const identifierInput = document.getElementById('loginIdentifier') || document.getElementById('loginUsername');
+    const identifier = identifierInput ? identifierInput.value.trim() : '';
     const password = document.getElementById('loginPassword').value.trim();
 
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ identifier, password })
       });
 
       if (!response.ok) {

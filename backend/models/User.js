@@ -7,6 +7,12 @@ export const User = {
     return rows[0];
   },
 
+  async findByEmail(email) {
+    const db = getConnection();
+    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    return rows[0];
+  },
+
   async findById(id) {
     const db = getConnection();
     const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);

@@ -29,12 +29,18 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required.' });
+    const { identifier, username, email, password } = req.body;
+    const loginIdentifier = identifier || username || email;
+
+    if (!loginIdentifier || !password) {
+      return res.status(400).json({ message: 'Username or email and password are required.' });
     }
 
-    const user = await User.findByUsername(username);
+    let user = await User.findByUsername(loginIdentifier);
+    if (!user) {
+      user = await User.findByEmail(loginIdentifier);
+    }
+
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
