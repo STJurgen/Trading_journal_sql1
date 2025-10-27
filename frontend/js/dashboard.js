@@ -97,33 +97,61 @@ async function loadDashboard() {
 
 function toDateKey(value) {
   if (!value) return '';
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+    if (match) {
+      const [, datePart, hours, minutes] = match;
+      if (hours && minutes) {
+        return `${datePart}T${hours}:${minutes}`;
+      }
+      return datePart;
+    }
+  }
+
   const date = new Date(value);
   if (!Number.isNaN(date.getTime())) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-  if (typeof value === 'string') {
-    const splitValue = value.split(/[T\s]/)[0];
-    return splitValue;
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
   return '';
+}
+
+function toMysqlDateTime(value) {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    if (value.includes('T')) {
+      const [datePart, timePartRaw = ''] = value.split('T');
+      if (!datePart) return null;
+      const [hours = '00', minutes = '00', seconds = '00'] = timePartRaw.split(':').map((part) => part || '00');
+      return `${datePart} ${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+    }
+    if (value.includes(' ')) {
+      const [datePart, timePartRaw = ''] = value.split(' ');
+      if (!datePart) return null;
+      const [hours = '00', minutes = '00', seconds = '00'] = timePartRaw.split(':').map((part) => part || '00');
+      return `${datePart} ${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+    }
+  }
+  return value;
 }
 
 function filterTradesByDate(trades) {
   const startInput = document.getElementById('tradeStartDate');
   const endInput = document.getElementById('tradeEndDate');
-  const start = startInput?.value || '';
-  const end = endInput?.value || '';
+  const start = toDateKey(startInput?.value);
+  const end = toDateKey(endInput?.value);
 
   if (!start && !end) return trades;
 
   return trades.filter((trade) => {
-    const tradeDate = toDateKey(trade.close_date);
-    if (!tradeDate) return false;
-    if (start && tradeDate < start) return false;
-    if (end && tradeDate > end) return false;
+    const tradeDateKey = toDateKey(trade.open_date || trade.close_date);
+    if (!tradeDateKey) return false;
+    if (start && tradeDateKey < start) return false;
+    if (end && tradeDateKey > end) return false;
     return true;
   });
 }
@@ -133,7 +161,9 @@ function formatDateForInput(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function setDateInputs(startDate, endDate) {
@@ -161,6 +191,7 @@ function applyQuickRange(range) {
     case 'this-week': {
       const start = startOfWeek(today);
       const end = new Date(today);
+      end.setHours(23, 59, 0, 0);
       setDateInputs(start, end);
       break;
     }
@@ -170,18 +201,21 @@ function applyQuickRange(range) {
       start.setDate(start.getDate() - 7);
       const end = new Date(start);
       end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 0, 0);
       setDateInputs(start, end);
       break;
     }
     case 'this-month': {
       const start = new Date(today.getFullYear(), today.getMonth(), 1);
       const end = new Date(today);
+      end.setHours(23, 59, 0, 0);
       setDateInputs(start, end);
       break;
     }
     case 'last-month': {
       const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      end.setHours(23, 59, 0, 0);
       setDateInputs(start, end);
       break;
     }
@@ -212,8 +246,8 @@ function populateTradesTable(trades) {
   const filteredTrades = filterTradesByDate(trades)
     .slice()
     .sort((a, b) => {
-      const dateA = toDateKey(a.close_date);
-      const dateB = toDateKey(b.close_date);
+      const dateA = toDateKey(a.open_date || a.close_date);
+      const dateB = toDateKey(b.open_date || b.close_date);
       if (dateA === dateB) return 0;
       if (!dateA) return 1;
       if (!dateB) return -1;
@@ -345,11 +379,14 @@ async function renderCalendar(trades) {
     return;
   }
 
-  const events = trades.map((trade) => ({
-    title: Number(trade.result) >= 0 ? `${Number(trade.result)}$` : `(${Math.abs(Number(trade.result))}$)`,
-    start: trade.close_date,
-    color: Number(trade.result) >= 0 ? '#38d9a9' : '#ff6b6b'
-  }));
+  const events = trades.map((trade) => {
+    const startDate = trade.open_date || trade.close_date;
+    return {
+      title: Number(trade.result) >= 0 ? `${Number(trade.result)}$` : `(${Math.abs(Number(trade.result))}$)`,
+      start: startDate ? startDate.replace(' ', 'T') : undefined,
+      color: Number(trade.result) >= 0 ? '#38d9a9' : '#ff6b6b'
+    };
+  }).filter((event) => Boolean(event.start));
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
@@ -448,8 +485,8 @@ async function setupTradeJournal() {
         entry: document.getElementById('tradeEntry').value,
         exit: document.getElementById('tradeExit').value,
         result: document.getElementById('tradeResult').value,
-        open_date: document.getElementById('tradeOpenDate').value,
-        close_date: document.getElementById('tradeDate').value,
+        open_date: toMysqlDateTime(document.getElementById('tradeOpenDate').value),
+        close_date: toMysqlDateTime(document.getElementById('tradeCloseDate').value),
         strategy: document.getElementById('tradeStrategy').value,
         notes: document.getElementById('tradeNotes').value
       };

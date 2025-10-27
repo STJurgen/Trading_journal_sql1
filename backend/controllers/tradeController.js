@@ -2,6 +2,30 @@ import { parse } from 'csv-parse/sync';
 import { Trade } from '../models/Trade.js';
 import { getConnection } from '../config/db.js';
 
+function normalizeDateTime(value) {
+  if (!value) return null;
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    const hours = String(value.getHours()).padStart(2, '0');
+    const minutes = String(value.getMinutes()).padStart(2, '0');
+    const seconds = String(value.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (match) {
+      const [, datePart, hours = '00', minutes = '00', seconds = '00'] = match;
+      return `${datePart} ${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+    }
+  }
+
+  return value;
+}
+
 export const getTrades = async (req, res) => {
   try {
     const trades = await Trade.findAllByUser(req.user.id);
@@ -21,8 +45,8 @@ export const createTrade = async (req, res) => {
       entry: req.body.entry,
       exit: req.body.exit,
       result: req.body.result,
-      close_date: req.body.close_date,
-      open_date: req.body.open_date,
+      close_date: normalizeDateTime(req.body.close_date),
+      open_date: normalizeDateTime(req.body.open_date),
       strategy: req.body.strategy,
       notes: req.body.notes
     };
@@ -42,8 +66,8 @@ export const updateTrade = async (req, res) => {
       entry: req.body.entry,
       exit: req.body.exit,
       result: req.body.result,
-      close_date: req.body.close_date,
-      open_date: req.body.open_date,
+      close_date: normalizeDateTime(req.body.close_date),
+      open_date: normalizeDateTime(req.body.open_date),
       strategy: req.body.strategy,
       notes: req.body.notes
     };
@@ -97,8 +121,8 @@ export const importTrades = async (req, res) => {
         record.entry || record.Entry || 0,
         record.exit || record.Exit || 0,
         record.result || record.Result || 0,
-        record.close_date || record.Date || new Date().toISOString().slice(0, 10),
-        record.open_date || record.OpenDate || new Date().toISOString().slice(0, 10),
+        normalizeDateTime(record.close_date || record.Date || new Date().toISOString().slice(0, 10)),
+        normalizeDateTime(record.open_date || record.OpenDate || new Date().toISOString().slice(0, 10)),
         record.strategy || record.Strategy || 'Imported',
         record.notes || record.Notes || ''
       ]);
