@@ -39,6 +39,16 @@ function formatCurrency(value) {
   }).format(Number(value || 0));
 }
 
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    console.warn('Failed to parse stored user:', error);
+    return {};
+  }
+}
+
 function formatDateTime(value) {
   if (!value) return '';
   if (typeof value === 'string') {
@@ -440,7 +450,17 @@ function renderCharts(trades) {
   const profitFactorText = document.getElementById('profitFactorText');
   if (profitFactorText) profitFactorText.textContent = `PF: ${profitFactor}`;
   const winRateTextCh = document.getElementById('winRateTextCh');
-  if (winRateTextCh) winRateTextCh.textContent = `+${winRate}% Win Rate`;
+  if (winRateTextCh) {
+    const { account_balance: accountBalance = 0 } = getStoredUser();
+    if (accountBalance > 0) {
+      const gainPercent = (totalPnL / accountBalance) * 100;
+      winRateTextCh.textContent = `${gainPercent >= 0 ? '+' : ''}${gainPercent.toFixed(2)}% Gain`;
+      winRateTextCh.classList.toggle('bg-success', gainPercent >= 0);
+      winRateTextCh.classList.toggle('bg-danger', gainPercent < 0);
+    } else {
+      winRateTextCh.textContent = 'N/A';
+    }
+  }
   const winRateText = document.getElementById('winRateText');
   if (winRateText) winRateText.textContent = `${winRate}% Win Rate`;
 }
@@ -503,35 +523,20 @@ function updateStats(trades) {
   if (avgWinBar) avgWinBar.style.width = `${Math.min((avgWin / (avgWin + avgLoss || 1)) * 100, 100)}%`;
   if (avgLossBar) avgLossBar.style.width = `${Math.min((avgLoss / (avgWin + avgLoss || 1)) * 100, 100)}%`;
 
+  const accountBalanceEl = document.getElementById('accountBalance');
+  if (accountBalanceEl) {
+    const { account_balance: accountBalance = 0 } = getStoredUser();
+    accountBalanceEl.textContent = formatCurrency(accountBalance);
+  }
+
   const tradeStreak = document.getElementById('tradeStreak');
   if (tradeStreak) tradeStreak.textContent = `${calculateStreak(trades)} Wins`;
-  const dayStreak = document.getElementById('dayStreak');
-  if (dayStreak) dayStreak.textContent = `${calculateDayStreak(trades)} Days`;
 }
 
 function calculateStreak(trades) {
   let streak = 0;
   for (const trade of trades.sort((a, b) => new Date(b.close_date) - new Date(a.close_date))) {
     if (Number(trade.result) > 0) {
-      streak += 1;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
-function calculateDayStreak(trades) {
-  const sortedTrades = trades
-    .filter((t) => Number(t.result) > 0)
-    .map((t) => t.close_date)
-    .sort((a, b) => new Date(b) - new Date(a));
-  if (!sortedTrades.length) return 0;
-
-  let streak = 1;
-  for (let i = 1; i < sortedTrades.length; i += 1) {
-    const diff = Math.abs(new Date(sortedTrades[i - 1]) - new Date(sortedTrades[i]));
-    if (diff <= 86400000 + 1000) {
       streak += 1;
     } else {
       break;

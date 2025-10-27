@@ -19,12 +19,12 @@ export const User = {
     return rows[0];
   },
 
-  async create({ username, email, password }) {
+  async create({ username, email, password, account_balance = 0 }) {
     const db = getConnection();
     const [result] = await db.query(
-      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username, email, password]
+      'INSERT INTO users (username, email, password, account_balance) VALUES (?, ?, ?, ?)',
+      [username, email, password, account_balance]
     );
-    return { id: result.insertId, username, email };
+    return { id: result.insertId, username, email, account_balance };
   }
 };

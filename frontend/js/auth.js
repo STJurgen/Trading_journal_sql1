@@ -55,12 +55,19 @@ if (document.getElementById('registerForm')) {
     const username = document.getElementById('registerUsername').value.trim();
     const email = document.getElementById('registerEmail').value.trim();
     const password = document.getElementById('registerPassword').value.trim();
+    const accountBalanceInput = document.getElementById('registerAccountBalance');
+    const accountBalanceValue = accountBalanceInput ? accountBalanceInput.value.trim() : '';
+    const accountBalance = accountBalanceValue ? Number(accountBalanceValue) : 0;
+
+    if (Number.isNaN(accountBalance) || accountBalance < 0) {
+      return showAlert('registerError', 'Please enter a valid non-negative account balance.');
+    }
 
     try {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ username, email, password, account_balance: accountBalance })
       });
 
       const data = await response.json();

@@ -102,6 +102,7 @@ async function attemptInitialization() {
         username VARCHAR(255) NOT NULL UNIQUE,
         email VARCHAR(255),
         password VARCHAR(255) NOT NULL,
+        account_balance DECIMAL(15, 2) DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
