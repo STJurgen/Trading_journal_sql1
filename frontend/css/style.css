@@ -91,6 +91,7 @@ a:hover {
 
 .fc .fc-daygrid-day-number {
   color: #f8f9fa;
+  text-decoration: none;
 }
 
 .fc .fc-daygrid-day.fc-day-today {
