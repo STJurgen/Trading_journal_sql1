@@ -342,39 +342,19 @@ async function renderCalendar(trades) {
     return;
   }
 
-  const events = trades
-    .filter((trade) => trade.close_date)
-    .map((trade) => {
-      const numericResult = Number(trade.result) || 0;
-      const isWinningTrade = numericResult >= 0;
-      const formattedResult = `${isWinningTrade ? '+' : '-'}${Math.abs(numericResult).toFixed(2)}$`;
-
-      return {
-        title: formattedResult,
-        start: trade.close_date,
-        display: 'block',
-        classNames: isWinningTrade ? [] : ['fc-event-danger']
-      };
-    });
+  const events = trades.map((trade) => ({
+    title: Number(trade.result) >= 0 ? `${Number(trade.result)}$` : `(${Math.abs(Number(trade.result))}$)`,
+    start: trade.close_date,
+    color: Number(trade.result) >= 0 ? '#38d9a9' : '#ff6b6b'
+  }));
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     themeSystem: 'standard',
-    buttonText: {
-      today: 'Today',
-      prev: '<',
-      next: '>',
-      prevYear: '<<',
-      nextYear: '>>'
-    },
     headerToolbar: {
       left: 'title',
-      center: 'prevYear,prev,next,nextYear',
-      right: 'today'
+      right: 'prev,next today'
     },
-    height: 'auto',
-    dayMaxEvents: 3,
-    navLinks: true,
     displayEventTime: false,
     events
   });
