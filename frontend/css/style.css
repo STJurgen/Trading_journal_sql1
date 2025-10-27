@@ -97,6 +97,10 @@ a:hover {
   background: rgba(0, 180, 216, 0.2);
 }
 
+.dppad {
+  margin-top: 10px;
+}
+
 @media (max-width: 992px) {
   .navbar .btn {
     margin-top: 1rem;

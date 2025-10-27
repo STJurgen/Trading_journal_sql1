@@ -45,12 +45,21 @@ async function loadDashboard() {
 
   const startDateInput = document.getElementById('tradeStartDate');
   const endDateInput = document.getElementById('tradeEndDate');
+  const presetBtn = document.getElementById('tradeRangePresetBtn');
 
   [startDateInput, endDateInput].forEach((input) => {
     if (input) {
-      input.addEventListener('change', () => populateTradesTable(allTrades));
+      input.addEventListener('change', () => {
+        if (presetBtn) {
+          const hasCustomRange = Boolean((startDateInput?.value || '').trim() || (endDateInput?.value || '').trim());
+          presetBtn.textContent = hasCustomRange ? 'Custom' : 'All';
+        }
+        populateTradesTable(allTrades);
+      });
     }
   });
+
+  attachRangePresetHandlers();
 
   try {
     const trades = await fetchTrades();
@@ -94,6 +103,83 @@ function filterTradesByDate(trades) {
     if (start && tradeDate < start) return false;
     if (end && tradeDate > end) return false;
     return true;
+  });
+}
+
+function formatDateForInput(date) {
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function setDateInputs(startDate, endDate) {
+  const startInput = document.getElementById('tradeStartDate');
+  const endInput = document.getElementById('tradeEndDate');
+  if (startInput) startInput.value = startDate ? formatDateForInput(startDate) : '';
+  if (endInput) endInput.value = endDate ? formatDateForInput(endDate) : '';
+  populateTradesTable(allTrades);
+}
+
+function startOfWeek(date) {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  result.setDate(result.getDate() + diff);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function applyQuickRange(range) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  switch (range) {
+    case 'this-week': {
+      const start = startOfWeek(today);
+      const end = new Date(today);
+      setDateInputs(start, end);
+      break;
+    }
+    case 'previous-week': {
+      const currentWeekStart = startOfWeek(today);
+      const start = new Date(currentWeekStart);
+      start.setDate(start.getDate() - 7);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      setDateInputs(start, end);
+      break;
+    }
+    case 'this-month': {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today);
+      setDateInputs(start, end);
+      break;
+    }
+    case 'last-month': {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      setDateInputs(start, end);
+      break;
+    }
+    case 'all':
+    default:
+      setDateInputs(null, null);
+      break;
+  }
+}
+
+function attachRangePresetHandlers() {
+  const presetBtn = document.getElementById('tradeRangePresetBtn');
+  document.querySelectorAll('[data-range-value]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const range = item.getAttribute('data-range-value');
+      if (presetBtn) {
+        presetBtn.textContent = item.textContent.trim();
+      }
+      applyQuickRange(range);
+    });
   });
 }
 
