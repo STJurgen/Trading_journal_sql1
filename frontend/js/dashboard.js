@@ -183,6 +183,7 @@ async function renderCalendar(trades) {
       left: 'title',
       right: 'prev,next today'
     },
+    displayEventTime: false,
     events
   });
 
