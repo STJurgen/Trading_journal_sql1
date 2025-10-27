@@ -1,6 +1,7 @@
 import { fetchTrades, createTrade, deleteTrade, importCsv, requireAuth } from './tradeService.js';
 
 let fullCalendarLoaderPromise;
+let allTrades = [];
 
 function loadFullCalendar() {
   if (window.FullCalendar) {
@@ -42,22 +43,85 @@ async function loadDashboard() {
 
   requireAuth();
 
+  const startDateInput = document.getElementById('tradeStartDate');
+  const endDateInput = document.getElementById('tradeEndDate');
+
+  [startDateInput, endDateInput].forEach((input) => {
+    if (input) {
+      input.addEventListener('change', () => populateTradesTable(allTrades));
+    }
+  });
+
   try {
     const trades = await fetchTrades();
-    populateTradesTable(trades);
-    renderCharts(trades);
-    await renderCalendar(trades);
-    updateStats(trades);
+    allTrades = trades;
+    populateTradesTable(allTrades);
+    renderCharts(allTrades);
+    await renderCalendar(allTrades);
+    updateStats(allTrades);
   } catch (error) {
     console.error(error);
   }
 }
 
+function toDateKey(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof value === 'string') {
+    const splitValue = value.split(/[T\s]/)[0];
+    return splitValue;
+  }
+  return '';
+}
+
+function filterTradesByDate(trades) {
+  const startInput = document.getElementById('tradeStartDate');
+  const endInput = document.getElementById('tradeEndDate');
+  const start = startInput?.value || '';
+  const end = endInput?.value || '';
+
+  if (!start && !end) return trades;
+
+  return trades.filter((trade) => {
+    const tradeDate = toDateKey(trade.close_date);
+    if (!tradeDate) return false;
+    if (start && tradeDate < start) return false;
+    if (end && tradeDate > end) return false;
+    return true;
+  });
+}
+
 function populateTradesTable(trades) {
   const tableBody = document.getElementById('tradesTableBody');
   if (!tableBody) return;
-  tableBody.innerHTML = trades
-    .slice(0, 7)
+
+  const filteredTrades = filterTradesByDate(trades)
+    .slice()
+    .sort((a, b) => {
+      const dateA = toDateKey(a.close_date);
+      const dateB = toDateKey(b.close_date);
+      if (dateA === dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return dateA > dateB ? -1 : 1;
+    });
+
+  if (!filteredTrades.length) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-3">No trades found for the selected range.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tableBody.innerHTML = filteredTrades
     .map((trade) => `
       <tr>
         <td>${trade.symbol}</td>
