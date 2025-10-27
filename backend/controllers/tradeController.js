@@ -22,6 +22,7 @@ export const createTrade = async (req, res) => {
       exit: req.body.exit,
       result: req.body.result,
       close_date: req.body.close_date,
+      open_date: req.body.open_date,
       strategy: req.body.strategy,
       notes: req.body.notes
     };
@@ -42,6 +43,7 @@ export const updateTrade = async (req, res) => {
       exit: req.body.exit,
       result: req.body.result,
       close_date: req.body.close_date,
+      open_date: req.body.open_date,
       strategy: req.body.strategy,
       notes: req.body.notes
     };
@@ -81,8 +83,8 @@ export const importTrades = async (req, res) => {
 
     const db = getConnection();
     const insertQuery = `
-      INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, strategy, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, open_date, strategy, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     let imported = 0;
@@ -96,6 +98,7 @@ export const importTrades = async (req, res) => {
         record.exit || record.Exit || 0,
         record.result || record.Result || 0,
         record.close_date || record.Date || new Date().toISOString().slice(0, 10),
+        record.open_date || record.OpenDate || new Date().toISOString().slice(0, 10),
         record.strategy || record.Strategy || 'Imported',
         record.notes || record.Notes || ''
       ]);

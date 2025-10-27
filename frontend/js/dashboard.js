@@ -43,6 +43,8 @@ function formatDateTime(value) {
   if (typeof value === 'string') {
     const match = value.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
     if (match) return `${match[1]} ${match[2]}`;
+    const dateOnlyMatch = value.match(/^(\d{4}-\d{2}-\d{2})$/);
+    if (dateOnlyMatch) return dateOnlyMatch[1];
   }
 
   const date = new Date(value);
@@ -221,7 +223,7 @@ function populateTradesTable(trades) {
   if (!filteredTrades.length) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="text-center text-muted py-3">No trades found for the selected range.</td>
+        <td colspan="7" class="text-center text-muted py-3">No trades found for the selected range.</td>
       </tr>
     `;
     return;
@@ -235,6 +237,7 @@ function populateTradesTable(trades) {
         <td>${trade.entry}</td>
         <td>${trade.exit}</td>
         <td class="${trade.result >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(trade.result)}</td>
+        <td>${formatDateTime(trade.open_date)}</td>
         <td>${formatDateTime(trade.close_date)}</td>
       </tr>
     `)
@@ -445,6 +448,7 @@ async function setupTradeJournal() {
         entry: document.getElementById('tradeEntry').value,
         exit: document.getElementById('tradeExit').value,
         result: document.getElementById('tradeResult').value,
+        open_date: document.getElementById('tradeOpenDate').value,
         close_date: document.getElementById('tradeDate').value,
         strategy: document.getElementById('tradeStrategy').value,
         notes: document.getElementById('tradeNotes').value
@@ -475,6 +479,7 @@ function renderJournalTable(trades) {
         <td>${trade.entry}</td>
         <td>${trade.exit}</td>
         <td class="${trade.result >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(trade.result)}</td>
+        <td>${formatDateTime(trade.open_date)}</td>
         <td>${formatDateTime(trade.close_date)}</td>
         <td>${trade.strategy || ''}</td>
         <td>${trade.notes || ''}</td>

@@ -116,6 +116,7 @@ async function attemptInitialization() {
         \`exit\` DECIMAL(15, 4) NOT NULL,
         \`result\` DECIMAL(15, 2) NOT NULL,
         close_date DATE,
+        open_date DATE,
         strategy VARCHAR(255),
         notes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

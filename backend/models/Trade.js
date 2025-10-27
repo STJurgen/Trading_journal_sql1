@@ -3,15 +3,15 @@ import { getConnection } from '../config/db.js';
 export const Trade = {
   async findAllByUser(userId) {
     const db = getConnection();
-    const [rows] = await db.query('SELECT * FROM trades WHERE user_id = ? ORDER BY close_date DESC', [userId]);
+    const [rows] = await db.query('SELECT * FROM trades WHERE user_id = ? ORDER BY open_date DESC', [userId]);
     return rows;
   },
 
   async create(trade) {
     const db = getConnection();
     const [result] = await db.query(
-      `INSERT INTO trades (user_id, symbol, trade_type, \`entry\`, \`exit\`, \`result\`, close_date, strategy, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      `INSERT INTO trades (user_id, symbol, trade_type, \`entry\`, \`exit\`, \`result\`, close_date, open_date, strategy, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         trade.user_id,
         trade.symbol,
@@ -20,6 +20,7 @@ export const Trade = {
         trade.exit,
         trade.result,
         trade.close_date,
+        trade.open_date,
         trade.strategy,
         trade.notes
       ]
@@ -31,7 +32,7 @@ export const Trade = {
     const db = getConnection();
     await db.query(
       `UPDATE trades
-       SET symbol = ?, trade_type = ?, \`entry\` = ?, \`exit\` = ?, \`result\` = ?, close_date = ?, strategy = ?, notes = ?
+       SET symbol = ?, trade_type = ?, \`entry\` = ?, \`exit\` = ?, \`result\` = ?, close_date = ?, open_date = ?, strategy = ?, notes = ?
        WHERE id = ? AND user_id = ?`,
       [
         trade.symbol,
@@ -40,6 +41,7 @@ export const Trade = {
         trade.exit,
         trade.result,
         trade.close_date,
+        trade.open_date,
         trade.strategy,
         trade.notes,
         id,
