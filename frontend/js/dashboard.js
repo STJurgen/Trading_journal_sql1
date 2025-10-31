@@ -839,7 +839,6 @@ function renderJournalTable(trades) {
         <td>${formatDateTime(trade.open_date)}</td>
         <td>${formatDateTime(trade.close_date)}</td>
         <td>${trade.strategy || ''}</td>
-        <td>${trade.notes || ''}</td>
         <td>
           ${
             trade.image_url || trade.imageUrl
