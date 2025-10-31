@@ -643,7 +643,36 @@ async function renderCalendar(trades) {
     return;
   }
 
-  const dailyStats = buildDailyStats(trades);
+  const events = trades
+    .map((trade) => {
+      const anchorDate = getTradeAnchorDate(trade);
+      let startDate;
+      if (anchorDate instanceof Date) {
+        startDate = anchorDate.toISOString();
+      } else if (typeof anchorDate === 'string') {
+        startDate = anchorDate.includes('T') ? anchorDate : anchorDate.replace(' ', 'T');
+      }
+
+      const numericResult = Number(trade.result);
+      const hasResult = Number.isFinite(numericResult);
+      const title =
+        !hasResult
+          ? trade.symbol || 'Trade'
+          : numericResult >= 0
+            ? `${numericResult}$`
+            : `(${Math.abs(numericResult)}$)`;
+
+      return {
+        id: trade.id,
+        title,
+        start: startDate,
+        color: hasResult ? (numericResult >= 0 ? '#38d9a9' : '#ff6b6b') : '#4dabf7',
+        extendedProps: {
+          tradeId: trade.id
+        }
+      };
+    })
+    .filter((event) => Boolean(event.start));
 
   if (calendarEl._calendarInstance) {
     calendarEl._calendarInstance.destroy();
@@ -662,11 +691,7 @@ async function renderCalendar(trades) {
       right: 'prev,next today'
     },
     displayEventTime: false,
-    events: [],
-    dayCellDidMount: (info) => decorateCalendarDayCell(info, dailyStats),
-    datesSet: () => {
-      window.requestAnimationFrame(() => updateCalendarWeekSummaries(calendarEl, dailyStats));
-    },
+    events,
     dateClick: (info) => openDayTradesModal(info.dateStr),
     eventClick: (info) => {
       info.jsEvent?.preventDefault();
@@ -677,108 +702,6 @@ async function renderCalendar(trades) {
 
   calendar.render();
   calendarEl._calendarInstance = calendar;
-  updateCalendarWeekSummaries(calendarEl, dailyStats);
-}
-
-function buildDailyStats(trades) {
-  const stats = new Map();
-  trades.forEach((trade) => {
-    const anchorDate = getTradeAnchorDate(trade);
-    const dateStr = extractDatePart(anchorDate);
-    if (!dateStr) return;
-
-    const numericResult = Number(trade.result || 0);
-    if (!Number.isFinite(numericResult)) return;
-
-    const current = stats.get(dateStr) || { total: 0, count: 0 };
-    current.total += numericResult;
-    current.count += 1;
-    stats.set(dateStr, current);
-  });
-  return stats;
-}
-
-function decorateCalendarDayCell(info, dailyStats) {
-  const dateStr = info.date.toISOString().split('T')[0];
-  const stats = dailyStats.get(dateStr);
-  const frame = info.el.querySelector('.fc-daygrid-day-frame');
-  if (!frame) return;
-
-  frame.classList.add('calendar-day-frame');
-  frame.classList.remove('calendar-day--profit', 'calendar-day--loss', 'calendar-day--flat', 'calendar-day--empty');
-  frame.style.cursor = 'pointer';
-  frame.onclick = (event) => {
-    event?.stopPropagation();
-    openDayTradesModal(dateStr);
-  };
-
-  const top = frame.querySelector('.fc-daygrid-day-top');
-  if (top) {
-    top.classList.add('calendar-day-top');
-  }
-
-  let summary = frame.querySelector('.calendar-day-summary');
-  if (!summary) {
-    summary = document.createElement('div');
-    summary.className = 'calendar-day-summary';
-    frame.appendChild(summary);
-  }
-
-  if (stats && stats.count > 0) {
-    const pnlClass = stats.total > 0 ? 'profit' : stats.total < 0 ? 'loss' : 'flat';
-    frame.classList.add(`calendar-day--${pnlClass}`);
-    summary.innerHTML = `
-      <div class="calendar-day-pnl ${pnlClass}">${formatCurrency(stats.total)}</div>
-      <div class="calendar-day-count">${stats.count} ${stats.count === 1 ? 'trade' : 'trades'}</div>
-    `;
-  } else {
-    frame.classList.add('calendar-day--empty');
-    summary.innerHTML = '';
-  }
-}
-
-function updateCalendarWeekSummaries(calendarEl, dailyStats) {
-  calendarEl.querySelectorAll('.calendar-week-summary').forEach((el) => el.remove());
-  calendarEl.querySelectorAll('.calendar-week-summary-target').forEach((cell) => cell.classList.remove('calendar-week-summary-target'));
-
-  const weekRows = calendarEl.querySelectorAll('.fc-daygrid-body table tbody tr');
-  let weekIndex = 1;
-  weekRows.forEach((row) => {
-    const cells = Array.from(row.querySelectorAll('.fc-daygrid-day'));
-    if (!cells.length) return;
-
-    let total = 0;
-    let count = 0;
-    cells.forEach((cell) => {
-      const cellDate = cell.getAttribute('data-date');
-      if (!cellDate) return;
-      const stats = dailyStats.get(cellDate);
-      if (stats) {
-        total += stats.total;
-        count += stats.count;
-      }
-    });
-
-    const summaryTarget = cells[cells.length - 1];
-    if (!summaryTarget) return;
-    summaryTarget.classList.add('calendar-week-summary-target');
-
-    let summary = summaryTarget.querySelector('.calendar-week-summary');
-    if (!summary) {
-      summary = document.createElement('div');
-      summary.className = 'calendar-week-summary';
-      summaryTarget.appendChild(summary);
-    }
-
-    const pnlClass = total > 0 ? 'profit' : total < 0 ? 'loss' : 'flat';
-    summary.innerHTML = `
-      <div class="calendar-week-summary-title">Week ${weekIndex}</div>
-      <div class="calendar-week-summary-pnl ${pnlClass}">${formatCurrency(total)}</div>
-      <div class="calendar-week-summary-count">${count} ${count === 1 ? 'trade' : 'trades'}</div>
-    `;
-
-    weekIndex += 1;
-  });
 }
 
 function updateStats(trades) {
