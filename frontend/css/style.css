@@ -102,6 +102,152 @@ a:hover {
   margin-top: 10px;
 }
 
+.day-trades-modal .modal-content {
+  background: linear-gradient(145deg, rgba(21, 38, 53, 0.98), rgba(15, 27, 37, 0.98));
+  border-radius: 24px;
+  border: 1px solid rgba(77, 171, 247, 0.12);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  color: #f8f9fa;
+}
+
+.day-trades-modal .modal-header {
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.day-trades-modal .modal-body {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.day-trades-modal .modal-title {
+  font-weight: 600;
+}
+
+.day-trades-modal .modal-subtitle {
+  font-size: 0.9rem;
+  color: #adb5bd;
+}
+
+.day-trade-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(77, 171, 247, 0.12);
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.day-trade-card + .day-trade-card {
+  margin-top: 1.25rem;
+}
+
+.day-trade-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.day-trade-card h6 {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.day-trade-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #adb5bd;
+}
+
+.day-trade-card-notes {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #d0d6dc;
+}
+
+.day-trade-image {
+  margin-top: 1rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(77, 171, 247, 0.15);
+  background: rgba(8, 15, 22, 0.8);
+}
+
+.day-trade-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.day-trade-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  border: 1px dashed rgba(77, 171, 247, 0.25);
+  border-radius: 16px;
+  color: #adb5bd;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.day-trade-badge {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.day-trade-badge.profit {
+  background: rgba(56, 217, 169, 0.18);
+  color: #63e6be;
+}
+
+.day-trade-badge.loss {
+  background: rgba(255, 107, 107, 0.18);
+  color: #ff8787;
+}
+
+.day-trade-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.day-trade-card-meta span::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(77, 171, 247, 0.6);
+}
+
+.day-trade-card-meta span:nth-child(2)::before {
+  background: rgba(255, 107, 107, 0.6);
+}
+
+.day-trade-card-meta span:nth-child(3)::before {
+  background: rgba(56, 217, 169, 0.6);
+}
+
+.day-trade-card-meta span:nth-child(4)::before {
+  background: rgba(132, 94, 247, 0.6);
+}
+
+.day-trade-card-meta span:nth-child(n + 5)::before {
+  background: rgba(233, 236, 239, 0.4);
+}
+
+.day-trade-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #94a1b2;
+}
+
 @media (max-width: 992px) {
   .navbar .btn {
     margin-top: 1rem;

@@ -71,6 +71,181 @@ function formatDateTime(value) {
   return value;
 }
 
+function formatNumber(value) {
+  const number = Number(value);
+  if (Number.isNaN(number)) return value;
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(number);
+}
+
+function extractDatePart(value) {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  return '';
+}
+
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return 'Unknown date';
+  const [year, month, day] = dateStr.split('-').map((segment) => Number(segment));
+  if ([year, month, day].some((segment) => Number.isNaN(segment))) return dateStr;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function getTradeAnchorDate(trade) {
+  return trade?.close_date || trade?.closeDate || trade?.open_date || trade?.openDate || trade?.date || null;
+}
+
+function escapeHtml(value) {
+  if (value === undefined || value === null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function resolveTradeImage(trade) {
+  const candidates = [
+    trade?.image_url,
+    trade?.imageUrl,
+    trade?.imageURL,
+    trade?.image,
+    trade?.screenshot_url,
+    trade?.screenshotUrl,
+    trade?.screenshot,
+    trade?.chart_image,
+    trade?.chartImage,
+    trade?.chartUrl,
+    trade?.chartURL,
+    trade?.picture,
+    trade?.picture_url,
+    trade?.pictureUrl,
+    trade?.photo,
+    trade?.media_url,
+    trade?.mediaUrl
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (!trimmed || /^javascript:/i.test(trimmed)) continue;
+    return trimmed;
+  }
+
+  return null;
+}
+
+function buildDayTradeCard(trade) {
+  const symbol = (trade?.symbol || trade?.ticker || 'Trade').toString().toUpperCase();
+  const tradeType = (trade?.trade_type || trade?.type || '').toString().toUpperCase();
+  const strategy = trade?.strategy || trade?.Strategy || '';
+  const entry = trade?.entry ?? trade?.Entry;
+  const exit = trade?.exit ?? trade?.Exit;
+  const size = trade?.size ?? trade?.quantity ?? trade?.qty;
+  const resultValue = Number(trade?.result || 0);
+  const notes = trade?.notes || trade?.Notes || trade?.comment || trade?.description || '';
+  const imageUrl = resolveTradeImage(trade);
+
+  const metrics = [];
+  if (entry !== undefined && entry !== null && entry !== '') metrics.push(`Entry ${formatNumber(entry)}`);
+  if (exit !== undefined && exit !== null && exit !== '') metrics.push(`Exit ${formatNumber(exit)}`);
+  if (size !== undefined && size !== null && size !== '') metrics.push(`Size ${formatNumber(size)}`);
+  if (strategy) metrics.push(`Strategy ${strategy}`);
+
+  const timeline = [];
+  const openDate = trade?.open_date || trade?.openDate;
+  const closeDate = trade?.close_date || trade?.closeDate || trade?.date;
+  if (openDate) timeline.push(`Opened ${formatDateTime(openDate)}`);
+  if (closeDate) timeline.push(`Closed ${formatDateTime(closeDate)}`);
+
+  const metricsHtml = metrics.length
+    ? `<div class="day-trade-card-meta">${metrics.map((metric) => `<span>${escapeHtml(metric)}</span>`).join('')}</div>`
+    : '';
+
+  const notesHtml = notes
+    ? `<div class="day-trade-card-notes">${escapeHtml(notes).replace(/\n/g, '<br>')}</div>`
+    : '';
+
+  const imageHtml = imageUrl
+    ? `<div class="day-trade-image"><img src="${escapeHtml(imageUrl)}" alt="Trade snapshot for ${escapeHtml(symbol)}" /></div>`
+    : '';
+
+  const timelineHtml = timeline.length
+    ? `<div class="day-trade-card-footer">${timeline.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</div>`
+    : '';
+
+  return `
+    <article class="day-trade-card">
+      <div class="day-trade-card-header">
+        <div>
+          <h6 class="mb-1">${escapeHtml(symbol)}</h6>
+          ${tradeType ? `<p class="text-uppercase text-muted small mb-0">${escapeHtml(tradeType)}</p>` : ''}
+        </div>
+        <span class="day-trade-badge ${resultValue >= 0 ? 'profit' : 'loss'}">${formatCurrency(resultValue)}</span>
+      </div>
+      ${metricsHtml}
+      ${notesHtml}
+      ${imageHtml}
+      ${timelineHtml}
+    </article>
+  `;
+}
+
+function openDayTradesModal(dateStr) {
+  const modalEl = document.getElementById('dayTradesModal');
+  const contentEl = document.getElementById('dayTradesContent');
+  const dateEl = document.getElementById('dayTradesDate');
+  const summaryEl = document.getElementById('dayTradesSummary');
+
+  if (!modalEl || !contentEl || !dateEl || !summaryEl) return;
+
+  const normalizedDate = extractDatePart(dateStr);
+  dateEl.textContent = formatDisplayDate(normalizedDate || dateStr);
+
+  const tradesForDay = allTrades.filter((trade) => extractDatePart(getTradeAnchorDate(trade)) === normalizedDate);
+
+  if (!tradesForDay.length) {
+    contentEl.innerHTML =
+      '<div class="day-trade-empty">No trades logged for this day yet. Add a journal entry to see it here.</div>';
+    summaryEl.textContent = 'No trades logged for this day.';
+    summaryEl.classList.remove('text-success', 'text-danger');
+  } else {
+    const totalResult = tradesForDay.reduce((acc, trade) => acc + Number(trade.result || 0), 0);
+    contentEl.innerHTML = tradesForDay.map((trade) => buildDayTradeCard(trade)).join('');
+    summaryEl.textContent = `${tradesForDay.length === 1 ? '1 trade logged' : `${tradesForDay.length} trades logged`} • Net ${formatCurrency(totalResult)}`;
+    summaryEl.classList.toggle('text-success', totalResult > 0);
+    summaryEl.classList.toggle('text-danger', totalResult < 0);
+    if (totalResult === 0) {
+      summaryEl.classList.remove('text-success', 'text-danger');
+    }
+  }
+
+  if (window.bootstrap?.Modal) {
+    const modalInstance =
+      window.bootstrap.Modal.getInstance(modalEl) || new window.bootstrap.Modal(modalEl, { focus: true });
+    modalInstance.show();
+  }
+}
+
 async function loadDashboard() {
   if (!document.getElementById('pnlChart')) return;
 
@@ -185,6 +360,7 @@ function getTradeFormElements() {
     closeDate: document.getElementById('tradeCloseDate'),
     strategy: document.getElementById('tradeStrategy'),
     notes: document.getElementById('tradeNotes'),
+    imageUrl: document.getElementById('tradeImageUrl'),
     submitBtn: document.getElementById('submitTradeBtn'),
     cancelBtn: document.getElementById('cancelEditTradeBtn')
   };
@@ -465,16 +641,47 @@ async function renderCalendar(trades) {
     return;
   }
 
-  const events = trades.map((trade) => {
-    const startDate = trade.open_date || trade.close_date;
-    return {
-      title: Number(trade.result) >= 0 ? `${Number(trade.result)}$` : `(${Math.abs(Number(trade.result))}$)`,
-      start: startDate ? startDate.replace(' ', 'T') : undefined,
-      color: Number(trade.result) >= 0 ? '#38d9a9' : '#ff6b6b'
-    };
-  }).filter((event) => Boolean(event.start));
+  const events = trades
+    .map((trade) => {
+      const anchorDate = getTradeAnchorDate(trade);
+      let startDate;
+      if (anchorDate instanceof Date) {
+        startDate = anchorDate.toISOString();
+      } else if (typeof anchorDate === 'string') {
+        startDate = anchorDate.includes('T') ? anchorDate : anchorDate.replace(' ', 'T');
+      }
+
+      const numericResult = Number(trade.result);
+      const hasResult = Number.isFinite(numericResult);
+      const title =
+        !hasResult
+          ? trade.symbol || 'Trade'
+          : numericResult >= 0
+            ? `${numericResult}$`
+            : `(${Math.abs(numericResult)}$)`;
+
+      return {
+        id: trade.id,
+        title,
+        start: startDate,
+        color: hasResult ? (numericResult >= 0 ? '#38d9a9' : '#ff6b6b') : '#4dabf7',
+        extendedProps: {
+          tradeId: trade.id
+        }
+      };
+    })
+    .filter((event) => Boolean(event.start));
+
+  if (calendarEl._calendarInstance) {
+    calendarEl._calendarInstance.destroy();
+  }
+
+  const plugins = [];
+  if (FullCalendar?.dayGridPlugin) plugins.push(FullCalendar.dayGridPlugin);
+  if (FullCalendar?.interactionPlugin) plugins.push(FullCalendar.interactionPlugin);
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
+    plugins,
     initialView: 'dayGridMonth',
     themeSystem: 'standard',
     headerToolbar: {
@@ -482,10 +689,17 @@ async function renderCalendar(trades) {
       right: 'prev,next today'
     },
     displayEventTime: false,
-    events
+    events,
+    dateClick: (info) => openDayTradesModal(info.dateStr),
+    eventClick: (info) => {
+      info.jsEvent?.preventDefault();
+      const date = extractDatePart(info.event.startStr);
+      openDayTradesModal(date);
+    }
   });
 
   calendar.render();
+  calendarEl._calendarInstance = calendar;
 }
 
 function updateStats(trades) {

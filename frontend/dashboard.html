@@ -152,17 +152,33 @@
         </div>
       </div>
       <div class="col-xl-5">
-        <div class="card h-100">
-          <div class="card-header border-0 bg-transparent">
-            <h5 class="card-title mb-0">Trading Calendar</h5>
-          </div>
-          <div class="card-body">
-            <div id="calendar"></div>
-          </div>
+      <div class="card h-100">
+        <div class="card-header border-0 bg-transparent">
+          <h5 class="card-title mb-0">Trading Calendar</h5>
+        </div>
+        <div class="card-body">
+          <div id="calendar"></div>
         </div>
       </div>
     </div>
-  </main>
+  </div>
+</main>
+
+<div class="modal fade day-trades-modal" id="dayTradesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <div>
+          <h5 class="modal-title mb-1">Trades on <span id="dayTradesDate"></span></h5>
+          <p class="modal-subtitle text-muted mb-0" id="dayTradesSummary"></p>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body day-trades-modal-body" id="dayTradesContent">
+      </div>
+    </div>
+  </div>
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
