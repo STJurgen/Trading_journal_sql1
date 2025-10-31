@@ -751,19 +751,11 @@ function updateStats(trades) {
   }
 
   const tradeStreak = document.getElementById('tradeStreak');
-  if (tradeStreak) tradeStreak.textContent = `${calculateStreak(trades)} Wins`;
+  if (tradeStreak) tradeStreak.textContent = `${calculateStreak(trades)} Wins`; // streak of consecutive wins
 }
 
 function calculateStreak(trades) {
-  let streak = 0;
-  for (const trade of trades.sort((a, b) => new Date(b.close_date) - new Date(a.close_date))) {
-    if (Number(trade.result) > 0) {
-      streak += 1;
-    } else {
-      break;
-    }
-  }
-  return streak;
+  return trades.reduce((wins, trade) => (Number(trade.result) > 0 ? wins + 1 : wins), 0);
 }
 
 async function setupTradeJournal() {
