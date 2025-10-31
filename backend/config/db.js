@@ -120,10 +120,19 @@ async function attemptInitialization() {
         open_date DATETIME,
         strategy VARCHAR(255),
         notes TEXT,
+        image_url VARCHAR(1024),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_trades_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
+
+    const [imageColumn] = await dbConnection.query("SHOW COLUMNS FROM trades LIKE 'image_url'");
+    if (!imageColumn.length) {
+      await dbConnection.query(`
+        ALTER TABLE trades
+        ADD COLUMN image_url VARCHAR(1024) AFTER notes
+      `);
+    }
 
     return dbConnection;
   } catch (error) {

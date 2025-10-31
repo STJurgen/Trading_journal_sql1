@@ -72,6 +72,13 @@
             <label class="form-label">Notes</label>
             <textarea class="form-control" id="tradeNotes" rows="2" placeholder="Reasons for the trade..."></textarea>
           </div>
+          <div class="col-md-6">
+            <label class="form-label">Screenshot URL</label>
+            <input type="url" class="form-control" id="tradeImageUrl" placeholder="https://..." />
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <small class="text-muted">Provide a link to the trade screenshot or chart you want to reference.</small>
+          </div>
           <div class="col-12 d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-outline-light d-none" id="cancelEditTradeBtn">Cancel</button>
             <button type="submit" class="btn btn-primary" id="submitTradeBtn">Add Trade</button>
@@ -98,6 +105,7 @@
                 <th>Close Date</th>
                 <th>Strategy</th>
                 <th>Notes</th>
+                <th>Picture</th>
                 <th>Actions</th>
               </tr>
             </thead>

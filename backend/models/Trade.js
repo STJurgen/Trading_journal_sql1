@@ -10,8 +10,8 @@ export const Trade = {
   async create(trade) {
     const db = getConnection();
     const [result] = await db.query(
-      `INSERT INTO trades (user_id, symbol, trade_type, \`entry\`, \`exit\`, \`result\`, close_date, open_date, strategy, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      `INSERT INTO trades (user_id, symbol, trade_type, \`entry\`, \`exit\`, \`result\`, close_date, open_date, strategy, notes, image_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         trade.user_id,
         trade.symbol,
@@ -22,7 +22,8 @@ export const Trade = {
         trade.close_date,
         trade.open_date,
         trade.strategy,
-        trade.notes
+        trade.notes,
+        trade.image_url
       ]
     );
     return { id: result.insertId, ...trade };
@@ -32,7 +33,7 @@ export const Trade = {
     const db = getConnection();
     await db.query(
       `UPDATE trades
-       SET symbol = ?, trade_type = ?, \`entry\` = ?, \`exit\` = ?, \`result\` = ?, close_date = ?, open_date = ?, strategy = ?, notes = ?
+       SET symbol = ?, trade_type = ?, \`entry\` = ?, \`exit\` = ?, \`result\` = ?, close_date = ?, open_date = ?, strategy = ?, notes = ?, image_url = ?
        WHERE id = ? AND user_id = ?`,
       [
         trade.symbol,
@@ -44,6 +45,7 @@ export const Trade = {
         trade.open_date,
         trade.strategy,
         trade.notes,
+        trade.image_url,
         id,
         userId
       ]

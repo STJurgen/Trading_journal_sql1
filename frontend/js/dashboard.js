@@ -372,6 +372,7 @@ function clearTradeForm() {
   elements.form.reset();
   if (elements.openDate) elements.openDate.value = '';
   if (elements.closeDate) elements.closeDate.value = '';
+  if (elements.imageUrl) elements.imageUrl.value = '';
 }
 
 function exitEditMode() {
@@ -398,6 +399,7 @@ function enterEditMode(trade) {
   if (elements.closeDate) elements.closeDate.value = formatDateTimeForInputValue(trade.close_date || trade.open_date);
   if (elements.strategy) elements.strategy.value = trade.strategy ?? '';
   if (elements.notes) elements.notes.value = trade.notes ?? '';
+  if (elements.imageUrl) elements.imageUrl.value = trade.image_url ?? trade.imageUrl ?? '';
   if (elements.submitBtn) elements.submitBtn.textContent = 'Update Trade';
   if (elements.cancelBtn) elements.cancelBtn.classList.remove('d-none');
   elements.symbol?.focus();
@@ -792,7 +794,8 @@ async function setupTradeJournal() {
         open_date: toMysqlDateTime(elements.openDate?.value),
         close_date: toMysqlDateTime(elements.closeDate?.value),
         strategy: elements.strategy?.value ?? '',
-        notes: elements.notes?.value ?? ''
+        notes: elements.notes?.value ?? '',
+        image_url: elements.imageUrl?.value?.trim() || ''
       };
 
       try {
@@ -837,6 +840,13 @@ function renderJournalTable(trades) {
         <td>${formatDateTime(trade.close_date)}</td>
         <td>${trade.strategy || ''}</td>
         <td>${trade.notes || ''}</td>
+        <td>
+          ${
+            trade.image_url || trade.imageUrl
+              ? `<a href="${trade.image_url || trade.imageUrl}" class="btn btn-sm btn-outline-light" target="_blank" rel="noopener noreferrer">View</a>`
+              : '<span class="text-muted">—</span>'
+          }
+        </td>
         <td class="text-nowrap">
           <button class="btn btn-sm btn-outline-light me-2" data-edit-id="${trade.id}">Edit</button>
           <button class="btn btn-sm btn-outline-light" data-delete-id="${trade.id}">Delete</button>

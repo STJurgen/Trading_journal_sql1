@@ -26,6 +26,17 @@ function normalizeDateTime(value) {
   return value;
 }
 
+function normalizeImageUrl(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^javascript:/i.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
+}
+
 export const getTrades = async (req, res) => {
   try {
     const trades = await Trade.findAllByUser(req.user.id);
@@ -48,7 +59,15 @@ export const createTrade = async (req, res) => {
       close_date: normalizeDateTime(req.body.close_date),
       open_date: normalizeDateTime(req.body.open_date),
       strategy: req.body.strategy,
-      notes: req.body.notes
+      notes: req.body.notes,
+      image_url: normalizeImageUrl(
+        req.body.image_url ||
+          req.body.imageUrl ||
+          req.body.screenshot_url ||
+          req.body.screenshotUrl ||
+          req.body.picture_url ||
+          req.body.pictureUrl
+      )
     };
     const trade = await Trade.create(tradeData);
     res.status(201).json(trade);
@@ -69,7 +88,15 @@ export const updateTrade = async (req, res) => {
       close_date: normalizeDateTime(req.body.close_date),
       open_date: normalizeDateTime(req.body.open_date),
       strategy: req.body.strategy,
-      notes: req.body.notes
+      notes: req.body.notes,
+      image_url: normalizeImageUrl(
+        req.body.image_url ||
+          req.body.imageUrl ||
+          req.body.screenshot_url ||
+          req.body.screenshotUrl ||
+          req.body.picture_url ||
+          req.body.pictureUrl
+      )
     };
     const trade = await Trade.update(req.params.id, req.user.id, tradeData);
     res.json(trade);
@@ -107,8 +134,8 @@ export const importTrades = async (req, res) => {
 
     const db = getConnection();
     const insertQuery = `
-      INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, open_date, strategy, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO trades (user_id, symbol, trade_type, entry, exit, result, close_date, open_date, strategy, notes, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     let imported = 0;
@@ -124,7 +151,18 @@ export const importTrades = async (req, res) => {
         normalizeDateTime(record.close_date || record.Date || new Date().toISOString().slice(0, 10)),
         normalizeDateTime(record.open_date || record.OpenDate || new Date().toISOString().slice(0, 10)),
         record.strategy || record.Strategy || 'Imported',
-        record.notes || record.Notes || ''
+        record.notes || record.Notes || '',
+        normalizeImageUrl(
+          record.image_url ||
+            record.imageUrl ||
+            record.ImageUrl ||
+            record.screenshot ||
+            record.Screenshot ||
+            record.screenshot_url ||
+            record.ScreenshotUrl ||
+            record.picture ||
+            record.Picture
+        )
       ]);
       imported += 1;
     }
