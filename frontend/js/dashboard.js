@@ -699,7 +699,8 @@ function buildDailyStats(trades) {
 }
 
 function decorateCalendarDayCell(info, dailyStats) {
-  const dateStr = info.date.toISOString().split('T')[0];
+  const dateStr = extractDatePart(info.date);
+  if (!dateStr) return;
   const stats = dailyStats.get(dateStr);
   const frame = info.el.querySelector('.fc-daygrid-day-frame');
   if (!frame) return;
