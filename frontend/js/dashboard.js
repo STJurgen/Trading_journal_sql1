@@ -31,6 +31,25 @@ function loadFullCalendar() {
 
 requireAuth();
 
+const EXPORT_FIELDS = [
+  { key: 'symbol', getValue: (trade) => trade.symbol || '' },
+  {
+    key: 'trade_type',
+    getValue: (trade) => {
+      const type = trade.trade_type || trade.tradeType || '';
+      return type ? type.toLowerCase() : '';
+    }
+  },
+  { key: 'entry', getValue: (trade) => trade.entry ?? trade.Entry ?? '' },
+  { key: 'exit', getValue: (trade) => trade.exit ?? trade.Exit ?? '' },
+  { key: 'result', getValue: (trade) => trade.result ?? trade.Result ?? '' },
+  { key: 'close_date', getValue: (trade) => formatDateForExport(trade.close_date || trade.closeDate) },
+  { key: 'open_date', getValue: (trade) => formatDateForExport(trade.open_date || trade.openDate) },
+  { key: 'strategy', getValue: (trade) => trade.strategy || trade.Strategy || '' },
+  { key: 'notes', getValue: (trade) => trade.notes || trade.Notes || '' },
+  { key: 'image_url', getValue: (trade) => trade.image_url || trade.imageUrl || '' }
+];
+
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -111,6 +130,28 @@ function formatDisplayDate(dateStr) {
 
 function getTradeAnchorDate(trade) {
   return trade?.close_date || trade?.closeDate || trade?.open_date || trade?.openDate || trade?.date || null;
+}
+
+function formatDateForExport(value) {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2})(?::(\d{2}))?(?::(\d{2}))?)?/);
+    if (match) {
+      const [, datePart, hours = '00', minutes = '00', seconds = '00'] = match;
+      return `${datePart} ${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+    }
+  }
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+  return extractDatePart(value) || '';
 }
 
 function escapeHtml(value) {
@@ -979,6 +1020,63 @@ async function setupImport() {
   });
 }
 
+function buildTradesCsv(trades) {
+  const header = EXPORT_FIELDS.map((field) => field.key).join(',');
+  const rows = trades.map((trade) => EXPORT_FIELDS.map((field) => formatCsvValue(field.getValue(trade))).join(','));
+  return rows.length ? [header, ...rows].join('\r\n') : `${header}\r\n`;
+}
+
+function formatCsvValue(value) {
+  if (value === undefined || value === null) return '';
+  const stringValue = String(value).replace(/"/g, '""').replace(/\r?\n/g, ' ');
+  return `"${stringValue}"`;
+}
+
+function downloadCsv(content, filename) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+async function setupExport() {
+  const exportBtn = document.getElementById('exportTradesBtn');
+  if (!exportBtn) return;
+
+  requireAuth();
+
+  const summary = document.getElementById('exportSummary');
+  const defaultLabel = exportBtn.textContent;
+
+  exportBtn.addEventListener('click', async () => {
+    exportBtn.disabled = true;
+    exportBtn.textContent = 'Preparing...';
+    if (summary) summary.textContent = '';
+    try {
+      const trades = await fetchTrades();
+      const csv = buildTradesCsv(trades);
+      const timestamp = new Date().toISOString().split('T')[0];
+      downloadCsv(csv, `tsj-trades-${timestamp}.csv`);
+      if (summary) {
+        summary.textContent = trades.length
+          ? `Downloaded ${trades.length} ${trades.length === 1 ? 'trade' : 'trades'}.`
+          : 'No trades yet, downloaded blank template.';
+      }
+    } catch (error) {
+      console.error('Export trades error:', error);
+      if (summary) summary.textContent = 'Failed to export trades. Please try again.';
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.textContent = defaultLabel;
+    }
+  });
+}
+
 async function setupReports() {
   if (!document.getElementById('winLossChart')) return;
 
@@ -1066,4 +1164,5 @@ function renderReportCharts(trades) {
 loadDashboard();
 setupTradeJournal();
 setupImport();
+setupExport();
 setupReports();
